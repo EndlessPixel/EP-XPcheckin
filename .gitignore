@@ -1,0 +1,28 @@
+# 构建输出
+/build
+/out
+/bin
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 插件数据（服务器运行产生的）
+plugins/
+plugin/
+*.yml
+*.db
+*.dat

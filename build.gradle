@@ -1,0 +1,26 @@
+plugins {
+    id 'java'
+}
+
+group = 'ep.xp.checkin'
+version = '1.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://hub.spigotmc.org/nexus/content/repositories/public/' }
+}
+
+dependencies {
+    compileOnly 'org.spigotmc:spigot-api:1.21-R0.1-SNAPSHOT'
+}
+
+tasks.named('jar') {
+    archiveBaseName = 'EP-XPcheckin'
+    destinationDirectory = layout.buildDirectory.dir('libs')
+}
