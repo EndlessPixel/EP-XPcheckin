@@ -20,9 +20,8 @@ gradle-app.setting
 .DS_Store
 Thumbs.db
 
-# 插件数据（服务器运行产生的）
+# 服务器运行产生的文件（只忽略运行时生成的，不忽略源码）
 plugins/
 plugin/
-*.yml
 *.db
 *.dat

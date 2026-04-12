@@ -1,0 +1,7 @@
+name: EP-XPcheckin
+main: ep.xp.checkin.DailyRandomXP
+version: 1.1
+api-version: 1.18
+commands:
+  checkin:
+    description: 每日随机经验签到

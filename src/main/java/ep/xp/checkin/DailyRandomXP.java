@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public final class DailyRandomXP extends JavaPlugin implements Listener, TabCompleter {
 
@@ -24,6 +25,10 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
     private File playerFile;
     private FileConfiguration playerData;
     private final Random random = new Random();
+
+    // 冷却
+    private final Map<UUID, Long> cooldownMap = new HashMap<>();
+    private static final int COOLDOWN_TICKS = 5; // 防刷屏 0.25秒
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -37,21 +42,30 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
     private void setupPlayerData() {
         playerFile = new File(getDataFolder(), "player.yml");
         if (!playerFile.exists()) {
-            playerFile.mkdirs();
+            playerFile.getParentFile().mkdirs();
+            try {
+                playerFile.createNewFile();
+            } catch (IOException e) {
+                getLogger().severe("创建 player.yml 失败!");
+            }
         }
         playerData = YamlConfiguration.loadConfiguration(playerFile);
     }
 
     private void savePlayerData() {
-        try {
-            playerData.save(playerFile);
-        } catch (IOException e) {
-            getLogger().severe("保存 player.yml 失败!");
-        }
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+            try {
+                playerData.save(playerFile);
+            } catch (IOException e) {
+                getLogger().severe("保存 player.yml 失败!");
+            }
+        });
     }
 
     private void reloadPlayerData() {
-        playerData = YamlConfiguration.loadConfiguration(playerFile);
+        if (playerFile.exists()) {
+            playerData = YamlConfiguration.loadConfiguration(playerFile);
+        }
     }
 
     private int getFairRandomXP() {
@@ -66,7 +80,7 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
             case 6 -> 1000000 + random.nextInt(9000000);
             case 7 -> 10000000 + random.nextInt(90000000);
             case 8 -> 100000000 + random.nextInt(900000000);
-            default -> 1000000000 + random.nextInt(1147483647);
+            default -> 1000000000 + random.nextInt(1147483647 - 1000000000);
         };
     }
 
@@ -94,6 +108,20 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (!cmd.getName().equalsIgnoreCase("checkin")) return false;
+
+        // 8 冷却防刷屏
+        if (sender instanceof Player p) {
+            UUID uuid = p.getUniqueId();
+            long now = System.currentTimeMillis();
+            if (cooldownMap.containsKey(uuid)) {
+                long last = cooldownMap.get(uuid);
+                if (now - last < TimeUnit.MILLISECONDS.convert(COOLDOWN_TICKS * 50, TimeUnit.MILLISECONDS)) {
+                    p.sendMessage(PREFIX + "§c操作过快！");
+                    return true;
+                }
+            }
+            cooldownMap.put(uuid, now);
+        }
 
         if (args.length == 0) {
             if (!(sender instanceof Player p)) {
@@ -150,18 +178,17 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
 
             String targetName = args[1];
             String dateStr = args[2];
-            Player targetPlayer = Bukkit.getPlayerExact(targetName);
             UUID uuid;
 
-            if (targetPlayer != null) {
-                uuid = targetPlayer.getUniqueId();
-            } else {
-                try {
-                    uuid = UUID.fromString(targetName);
-                } catch (Exception ex) {
+            try {
+                uuid = UUID.fromString(targetName);
+            } catch (Exception ex) {
+                Player target = Bukkit.getPlayerExact(targetName);
+                if (target == null) {
                     sender.sendMessage(PREFIX + "§c☒ 无效玩家名或UUID！");
                     return true;
                 }
+                uuid = target.getUniqueId();
             }
 
             String recordPath = uuid + ".records." + dateStr;
@@ -182,7 +209,7 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
             if (lastDate != null) {
                 playerData.set(uuid + ".lastCheckInDate", lastDate.format(DATE_FORMAT));
             } else {
-                playerData.set(uuid + ".lastCheckInDate", null);
+                playerData.set(uuid + ".lastCheckInDate", "");
                 playerData.set(uuid + ".streak", 0);
             }
 
@@ -191,7 +218,28 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
             return true;
         }
 
-        sender.sendMessage(PREFIX + "§c☒ 用法: /checkin | on | off | info | redata | record <player> <date>");
+        // 1 周榜
+        if (sub.equals("top")) {
+            showTop(sender);
+            return true;
+        }
+
+        // 9 离线玩家查询
+        if (sub.equals("look")) {
+            if (!sender.isOp()) {
+                sender.sendMessage(PREFIX + "§c你没有权限");
+                return true;
+            }
+            if (args.length < 2) {
+                sender.sendMessage(PREFIX + "§c用法: /checkin look <玩家名/UUID>");
+                return true;
+            }
+            String target = args[1];
+            opLookPlayer(sender, target);
+            return true;
+        }
+
+        sender.sendMessage(PREFIX + "§c☒ 用法: /checkin | on | off | info | top | redata | record | look");
         return true;
     }
 
@@ -209,15 +257,76 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
         return last;
     }
 
+    // 1 签到总榜
+    private void showTop(CommandSender sender) {
+        sender.sendMessage(PREFIX + "§7====== §a签到总经验排行榜 §7======");
+
+        List<Map.Entry<String, Integer>> list = new ArrayList<>();
+        Set<String> keys = playerData.getKeys(false);
+
+        for (String key : keys) {
+            try {
+                UUID.fromString(key);
+                int total = playerData.getInt(key + ".totalXP", 0);
+                if (total > 0) list.add(new AbstractMap.SimpleEntry<>(key, total));
+            } catch (Exception ignored) {}
+        }
+
+        list.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+
+        int rank = 1;
+        for (Map.Entry<String, Integer> entry : list) {
+            if (rank > 10) break;
+            String uuidStr = entry.getKey();
+            String name = playerData.getString(uuidStr + ".name", "未知玩家");
+            sender.sendMessage(PREFIX + "§7#" + rank + " §f" + name + " §7| 总经验: §a" + entry.getValue());
+            rank++;
+        }
+    }
+
+    // 9 OP 离线查询任意玩家
+    private void opLookPlayer(CommandSender sender, String target) {
+        UUID uuid;
+        String playerName = target;
+
+        try {
+            uuid = UUID.fromString(target);
+            playerName = playerData.getString(uuid + ".name", "未知玩家");
+        } catch (Exception ex) {
+            uuid = null;
+            for (String key : playerData.getKeys(false)) {
+                try {
+                    UUID.fromString(key);
+                    String n = playerData.getString(key + ".name", "");
+                    if (n.equalsIgnoreCase(target)) {
+                        uuid = UUID.fromString(key);
+                        playerName = n;
+                        break;
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+
+        if (uuid == null || !playerData.contains(uuid.toString())) {
+            sender.sendMessage(PREFIX + "§c未找到该玩家数据");
+            return;
+        }
+
+        sender.sendMessage(PREFIX + "§7====== §a" + playerName + " 的签到信息 §7======");
+        sender.sendMessage(PREFIX + "§f连续签到: §a" + playerData.getInt(uuid + ".streak", 0) + " 天");
+        sender.sendMessage(PREFIX + "§f累计签到: §a" + playerData.getInt(uuid + ".totalTimes", 0) + " 次");
+        sender.sendMessage(PREFIX + "§f累计经验: §a" + playerData.getInt(uuid + ".totalXP", 0) + " XP");
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String label, String[] args) {
         if (!cmd.getName().equalsIgnoreCase("checkin")) return null;
         List<String> list = new ArrayList<>();
 
         if (args.length == 1) {
-            list.addAll(Arrays.asList("on", "off", "info"));
+            list.addAll(Arrays.asList("on", "off", "info", "top"));
             if (sender.isOp()) {
-                list.addAll(Arrays.asList("redata", "record"));
+                list.addAll(Arrays.asList("redata", "record", "look"));
             }
         } else if (args.length == 2 && args[0].equalsIgnoreCase("record") && sender.isOp()) {
             for (Player p : Bukkit.getOnlinePlayers()) {
@@ -225,9 +334,19 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
             }
         } else if (args.length == 3 && args[0].equalsIgnoreCase("record") && sender.isOp()) {
             String playerName = args[1];
+            UUID uuid = null;
+
             Player p = Bukkit.getPlayerExact(playerName);
             if (p != null) {
-                ConfigurationSection section = playerData.getConfigurationSection(p.getUniqueId() + ".records");
+                uuid = p.getUniqueId();
+            } else {
+                try {
+                    uuid = UUID.fromString(playerName);
+                } catch (Exception ignored) {}
+            }
+
+            if (uuid != null) {
+                ConfigurationSection section = playerData.getConfigurationSection(uuid + ".records");
                 if (section != null) {
                     list.addAll(section.getKeys(false));
                 }
@@ -248,11 +367,20 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
             return;
         }
 
+        // 记录玩家名
+        playerData.set(uuid + ".name", p.getName());
+
         int baseXP = getFairRandomXP();
-        LocalDate lastDate = lastDateStr.isEmpty() ? null : LocalDate.parse(lastDateStr, DATE_FORMAT);
-        int streak = (lastDate != null && lastDate.plusDays(1).equals(today))
-                ? playerData.getInt(uuid + ".streak") + 1
-                : 1;
+        int streak = 1;
+
+        if (!lastDateStr.isEmpty()) {
+            try {
+                LocalDate lastDate = LocalDate.parse(lastDateStr, DATE_FORMAT);
+                if (lastDate.plusDays(1).isEqual(today)) {
+                    streak = playerData.getInt(uuid + ".streak") + 1;
+                }
+            } catch (Exception ignored) {}
+        }
 
         double multi = 1.0 + (streak - 1) * 0.1;
         int finalXP = (int) (baseXP * multi);
@@ -273,6 +401,11 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
         p.sendMessage(PREFIX + "§f连续签到: §a" + streak + " 天 §7(+" + ((streak - 1) * 10) + "%)");
         p.sendMessage(PREFIX + "§f最终获得: §b" + finalXP + " XP");
         p.sendMessage(PREFIX + "§f累计: §e" + playerData.getInt(uuid + ".totalTimes") + "次 §f| 总经验: §e" + playerData.getInt(uuid + ".totalXP"));
+
+        // 7 全服广播（大额经验触发）
+        if (finalXP >= 1000000) {
+            Bukkit.broadcastMessage(PREFIX + "§e恭喜 " + p.getName() + " §f签到获得 §a" + finalXP + " §f经验！欧气爆棚！");
+        }
     }
 
     private void showCheckInInfo(Player p) {
@@ -289,7 +422,16 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
         }
 
         p.sendMessage(PREFIX + "§7最近记录:");
-        for (String d : sec.getKeys(false)) {
+        List<String> dates = new ArrayList<>(sec.getKeys(false));
+        dates.sort((a, b) -> {
+            try {
+                return LocalDate.parse(b, DATE_FORMAT).compareTo(LocalDate.parse(a, DATE_FORMAT));
+            } catch (Exception e) {
+                return 0;
+            }
+        });
+
+        for (String d : dates) {
             int xp = playerData.getInt(uuid + ".records." + d + ".xp");
             int s = playerData.getInt(uuid + ".records." + d + ".streak", 1);
             p.sendMessage(PREFIX + "§f" + d + " §7| 连续" + s + "天 | §a" + xp + " XP");
