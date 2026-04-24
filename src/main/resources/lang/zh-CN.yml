@@ -1,0 +1,38 @@
+prefix: "§l§a[§7EndlessPixel§l§a] "
+
+only-player: "§c只有玩家可以使用！"
+no-permission: "§c你没有权限！"
+too-fast: "§c操作过快！"
+
+join-remind: "§e⚠ 你今天还未签到，输入 §f/checkin §e进行签到！"
+already-checkin: "§c你今天已经签到过了！"
+checkin-success: "§a签到成功！"
+
+base-xp: "§f基础经验: §e%num%"
+streak: "§f连续签到: §a%num% 天 §7(+%percent%%)"
+final-xp: "§f最终获得: §b%num% XP"
+total-info: "§f累计: §e%times%次 §f| 总经验: §e%xp%"
+
+remind-on: "§a已开启签到提醒！"
+remind-off: "§a已关闭签到提醒！"
+reloaded: "§a配置 & 语言文件已重新加载！"
+
+info-header: "§7----- §a你的签到信息 §7-----"
+info-streak: "§f连续签到: §a%num% 天"
+info-total-times: "§f累计签到: §a%num% 次"
+info-total-xp: "§f累计经验: §a%num% XP"
+no-record: "§7暂无记录"
+recent-record: "§7最近记录:"
+
+top-header: "§7====== §a签到总经验排行榜 §7======"
+look-header: "§7====== §a%player% 的签到信息 §7======"
+broadcast-lucky: "§e恭喜 %player% §f签到获得 §a%num% §f经验！欧气爆棚！"
+
+invalid-player: "§c无效玩家！"
+record-not-found: "§c该日期无记录！"
+record-deleted: "§a已删除记录: %date%"
+player-not-found: "§c未找到该玩家数据！"
+
+usage-main: "§c用法: /checkin | on | off | info | top | reload | record | look"
+usage-record: "§c用法: /checkin record <玩家> <日期>"
+usage-look: "§c用法: /checkin look <玩家名/UUID>"
