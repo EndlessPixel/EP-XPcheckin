@@ -1,0 +1,38 @@
+prefix: "§l§a[§7EndlessPixel§l§a] "
+
+only-player: "§cOnly players can use this!"
+no-permission: "§cYou don't have permission!"
+too-fast: "§cPlease slow down!"
+
+join-remind: "§e⚠ You haven't checked in today! Type §f/checkin §eto claim rewards!"
+already-checkin: "§cYou've already checked in today!"
+checkin-success: "§aSuccessfully checked in!"
+
+base-xp: "§fBase XP: §e%num%"
+streak: "§fStreak: §a%num% Days §7(+%percent%%)"
+final-xp: "§fFinal XP: §b%num% XP"
+total-info: "§fTotal: §e%times% times §f| Total XP: §e%xp%"
+
+remind-on: "§aCheck-in reminder enabled!"
+remind-off: "§aCheck-in reminder disabled!"
+reloaded: "§aConfig & language reloaded!"
+
+info-header: "§7----- §aYour Check-in Info §7-----"
+info-streak: "§fCurrent Streak: §a%num% Days"
+info-total-times: "§fTotal Check-ins: §a%num%"
+info-total-xp: "§fTotal XP Earned: §a%num% XP"
+no-record: "§7No records yet."
+recent-record: "§7Recent Records:"
+
+top-header: "§7====== §aTop Check-in XP §7======"
+look-header: "§7====== §a%player%'s Check-in Info §7======"
+broadcast-lucky: "§eCongratulations! %player% §fgot §a%num% §fXP from check-in!"
+
+invalid-player: "§cInvalid player!"
+record-not-found: "§cNo record found for this date!"
+record-deleted: "§aRecord deleted: %date%"
+player-not-found: "§cPlayer data not found!"
+
+usage-main: "§cUsage: /checkin | on | off | info | top | reload | record | look"
+usage-record: "§cUsage: /checkin record <player> <date>"
+usage-look: "§cUsage: /checkin look <player/UUID>"
