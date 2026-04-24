@@ -70,11 +70,13 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
 
     // ====================== 语言文件 ======================
     private void saveDefaultLanguage() {
-        String lang = getConfig().getString("language.default", "zh-CN");
+     List<String> builtInLangs = Arrays.asList("zh-CN", "en");
+     for (String lang : builtInLangs) {
         File langFile = new File(getDataFolder(), "lang/" + lang + ".yml");
         if (!langFile.exists()) {
             saveResource("lang/" + lang + ".yml", false);
         }
+      }
     }
 
     private void loadLanguage() {

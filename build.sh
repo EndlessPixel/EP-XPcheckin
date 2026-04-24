@@ -1,3 +1,3 @@
 #!/bin/bash
-gradlew build --no-daemon
+./gradlew build --no-daemon
 exit 0

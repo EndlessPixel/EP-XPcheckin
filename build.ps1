@@ -1,2 +1,2 @@
-gradlew.bat build --no-daemon
+.\gradlew.bat build --no-daemon
 exit 0
