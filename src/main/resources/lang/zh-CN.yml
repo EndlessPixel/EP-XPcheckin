@@ -36,3 +36,6 @@ player-not-found: "§c未找到该玩家数据！"
 usage-main: "§c用法: /checkin | on | off | info | top | reload | record | look"
 usage-record: "§c用法: /checkin record <玩家> <日期>"
 usage-look: "§c用法: /checkin look <玩家名/UUID>"
+
+log-create-playerdata-fail: "创建 player.yml 失败！"
+log-save-playerdata-fail: "保存 player.yml 失败！"

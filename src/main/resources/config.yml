@@ -1,19 +1,41 @@
 # ==============================
 #  EP-XPcheckin 主配置文件
+#  EP-XPcheckin Main Configuration
 # ==============================
 
 # 语言文件设置
+# Language File Settings
 language:
-  # 可用语言: zh-CN
+  # 可用语言: zh-CN, en-US
+  # Default Language
   default: zh-CN
 
 # 功能设置
+# Settings Settings
 settings:
   # 指令冷却 ticks (20 ticks = 1秒)
+  # Command Cooldown
   command-cooldown: 5
   # 进服提醒延迟 ticks
+  # Join Remind Delay
   join-remind-delay: 20
   # 连续签到倍率 (0.1 = 10%/天)
+  # Streak Multiplier
   streak-multiplier: 0.1
   # 超过该经验值全服广播
+  # Broadcast Above XP
   broadcast-above-xp: 1000000
+
+# 经验范围配置 (权重: 范围)
+# XP Range Configuration (weight: range)
+xp-ranges:
+  0: [1, 9]
+  1: [10, 99]
+  2: [100, 999]
+  3: [1000, 9999]
+  4: [10000, 99999]
+  5: [100000, 999999]
+  6: [1000000, 9999999]
+  7: [10000000, 99999999]
+  8: [100000000, 999999999]
+  9: [1000000000, 2147483647]

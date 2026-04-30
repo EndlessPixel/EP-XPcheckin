@@ -36,3 +36,6 @@ player-not-found: "§cPlayer data not found!"
 usage-main: "§cUsage: /checkin | on | off | info | top | reload | record | look"
 usage-record: "§cUsage: /checkin record <player> <date>"
 usage-look: "§cUsage: /checkin look <player/UUID>"
+
+log-create-playerdata-fail: "Failed to create player.yml!"
+log-save-playerdata-fail: "Failed to save player.yml!"

@@ -1,6 +1,6 @@
 name: EP-XPcheckin
 main: ep.xp.checkin.DailyRandomXP
-version: 1.2
+version: 1.3
 api-version: 1.18
 authors: [system_mini, EndlessPixel]
 description: 无尽像素每日随机经验签到插件

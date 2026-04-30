@@ -30,6 +30,7 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
     private int JOIN_DELAY;
     private double STREAK_MULTI;
     private int BROADCAST_LIMIT;
+    private Map<Integer, List<Integer>> XP_RANGES;
 
     // 数据
     private File playerFile;
@@ -48,8 +49,11 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
         getCommand("checkin").setTabCompleter(this);
         setupPlayerData();
 
+        int pluginId = 31016;
+        Metrics metrics = new Metrics(this, pluginId);
+
         getLogger().info("=====================================");
-        getLogger().info(" EP-XPcheckin 1.2 已成功加载！");
+        getLogger().info(" EP-XPcheckin 1.3 已成功加载！");
         getLogger().info(" 作者: system_mini | EndlessPixel");
         getLogger().info("=====================================");
     }
@@ -61,11 +65,42 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
         loadLanguage();
     }
 
+    // Load Configuration Settings
     private void loadConfig() {
         COOLDOWN = getConfig().getInt("settings.command-cooldown", 5);
         JOIN_DELAY = getConfig().getInt("settings.join-remind-delay", 20);
         STREAK_MULTI = getConfig().getDouble("settings.streak-multiplier", 0.1);
         BROADCAST_LIMIT = getConfig().getInt("settings.broadcast-above-xp", 1000000);
+        
+        XP_RANGES = new HashMap<>();
+        ConfigurationSection xpRangesSection = getConfig().getConfigurationSection("xp-ranges");
+        if (xpRangesSection != null) {
+            for (String key : xpRangesSection.getKeys(false)) {
+                int weight = Integer.parseInt(key);
+                List<Integer> range = xpRangesSection.getIntegerList(key);
+                if (range.size() >= 2) {
+                    XP_RANGES.put(weight, range);
+                }
+            }
+        }
+        if (XP_RANGES.isEmpty()) {
+            XP_RANGES = getDefaultXpRanges();
+        }
+    }
+    
+    private Map<Integer, List<Integer>> getDefaultXpRanges() {
+        Map<Integer, List<Integer>> defaultRanges = new HashMap<>();
+        defaultRanges.put(0, Arrays.asList(1, 9));
+        defaultRanges.put(1, Arrays.asList(10, 99));
+        defaultRanges.put(2, Arrays.asList(100, 999));
+        defaultRanges.put(3, Arrays.asList(1000, 9999));
+        defaultRanges.put(4, Arrays.asList(10000, 99999));
+        defaultRanges.put(5, Arrays.asList(100000, 999999));
+        defaultRanges.put(6, Arrays.asList(1000000, 9999999));
+        defaultRanges.put(7, Arrays.asList(10000000, 99999999));
+        defaultRanges.put(8, Arrays.asList(100000000, 999999999));
+        defaultRanges.put(9, Arrays.asList(1000000000, 2147483647));
+        return defaultRanges;
     }
 
     // ====================== 语言文件 ======================
@@ -98,7 +133,7 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
             try {
                 playerFile.createNewFile();
             } catch (IOException e) {
-                getLogger().severe("创建 player.yml 失败!");
+                getLogger().severe(langConfig.getString("log-create-playerdata-fail", "创建 player.yml 失败!"));
             }
         }
         playerData = YamlConfiguration.loadConfiguration(playerFile);
@@ -109,7 +144,7 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
             try {
                 playerData.save(playerFile);
             } catch (IOException e) {
-                getLogger().severe("保存 player.yml 失败!");
+                getLogger().severe(langConfig.getString("log-save-playerdata-fail", "保存 player.yml 失败!"));
             }
         });
     }
@@ -117,18 +152,14 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
     // ====================== 随机经验 ======================
     private int getFairRandomXP() {
         double r = random.nextDouble();
-        return switch ((int) (r * 10)) {
-            case 0 -> 1 + random.nextInt(9);
-            case 1 -> 10 + random.nextInt(90);
-            case 2 -> 100 + random.nextInt(900);
-            case 3 -> 1000 + random.nextInt(9000);
-            case 4 -> 10000 + random.nextInt(90000);
-            case 5 -> 100000 + random.nextInt(900000);
-            case 6 -> 1000000 + random.nextInt(9000000);
-            case 7 -> 10000000 + random.nextInt(90000000);
-            case 8 -> 100000000 + random.nextInt(900000000);
-            default -> 1000000000 + random.nextInt(1147483647 - 1000000000);
-        };
+        int weight = (int) (r * 10);
+        List<Integer> range = XP_RANGES.getOrDefault(weight, XP_RANGES.get(9));
+        if (range != null && range.size() >= 2) {
+            int min = range.get(0);
+            int max = range.get(1);
+            return min + random.nextInt(max - min + 1);
+        }
+        return 10;
     }
 
     // ====================== 进服提醒 ======================
