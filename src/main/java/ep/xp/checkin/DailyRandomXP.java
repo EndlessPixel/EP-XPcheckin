@@ -150,16 +150,29 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
     }
 
     // ====================== 随机经验 ======================
-    private int getFairRandomXP() {
-        double r = random.nextDouble();
-        int weight = (int) (r * 10);
-        List<Integer> range = XP_RANGES.getOrDefault(weight, XP_RANGES.get(9));
-        if (range != null && range.size() >= 2) {
-            int min = range.get(0);
-            int max = range.get(1);
-            return min + random.nextInt(max - min + 1);
+    // 对数均匀分布：在配置整体区间的 log 空间内均匀随机。
+    // 小值密集、大值稀疏且稀有（保留"大奖稀有合理"特性），
+    // 同时彻底消除离散档位跳变，分布平滑连续、统计均匀。
+    private long getFairRandomXP() {
+        if (XP_RANGES == null || XP_RANGES.isEmpty()) return 10;
+
+        long gMin = Long.MAX_VALUE;
+        long gMax = Long.MIN_VALUE;
+        for (List<Integer> range : XP_RANGES.values()) {
+            if (range != null && range.size() >= 2) {
+                gMin = Math.min(gMin, range.get(0));
+                gMax = Math.max(gMax, range.get(1));
+            }
         }
-        return 10;
+        if (gMin <= 0 || gMin > gMax) return 10;
+
+        double logMin = Math.log10(gMin);
+        double logMax = Math.log10(gMax);
+        double value = Math.pow(10, logMin + random.nextDouble() * (logMax - logMin));
+        long result = (long) Math.floor(value);
+        if (result < gMin) result = gMin;
+        if (result > gMax) result = gMax;
+        return result;
     }
 
     // ====================== 进服提醒 ======================
@@ -292,7 +305,7 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
         }
 
         playerData.set(uuid + ".name", p.getName());
-        int base = getFairRandomXP();
+        long base = getFairRandomXP();
         int streak = 1;
 
         if (!last.isEmpty()) {
