@@ -69,10 +69,10 @@ plugins/EP-XPcheckin/
 ## 版本支持
 - Minecraft 版本：1.12+ ~ 1.21+（兼容主流版本）
 - 服务端支持：Spigot、Paper 及衍生服务端（推荐 Paper 以获得更好性能）
-- 插件版本：v1.3
+- 插件版本：v1.4
 
 ## 使用说明
-1. 将编译好的 `EP-XPcheckin-1.3.jar` 放入服务器 `plugins` 目录。
+1. 将编译好的 `EP-XPcheckin-1.4.jar` 放入服务器 `plugins` 目录。
 2. 重启服务器，插件自动生成配置文件、语言文件及数据文件。
 3. （可选）修改 `config.yml` 自定义插件参数，修改后执行 `/checkin reload` 热重载生效。
 4. 游戏内输入 `/checkin` 即可开始每日签到，所有指令支持 TAB 补全。
