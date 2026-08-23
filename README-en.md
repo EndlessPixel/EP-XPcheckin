@@ -75,11 +75,11 @@ Contains full check-in data for each player:
 
 - **Minecraft Versions**: 1.12+ – 1.21+ (compatible with mainstream versions)  
 - **Server Software**: Spigot, Paper, and derivatives (Paper recommended for better performance)  
-- **Plugin Version**: v1.3
+- **Plugin Version**: v1.4
 
 ## How to Use
 
-1. Place the compiled `EP-XPcheckin-1.3.jar` into your server's `plugins` folder.
+1. Place the compiled `EP-XPcheckin-1.4.jar` into your server's `plugins` folder.
 2. Restart the server – the plugin automatically generates configuration, language, and data files.
 3. (Optional) Modify `config.yml` to customize plugin parameters, then run `/checkin reload` to hot-reload.
 4. In-game, type `/checkin` to start your daily check-in. All commands support TAB completion.
