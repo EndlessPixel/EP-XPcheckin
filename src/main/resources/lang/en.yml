@@ -24,7 +24,9 @@ info-total-xp: "§fTotal XP Earned: §a%num% XP"
 no-record: "§7No records yet."
 recent-record: "§7Recent Records:"
 
-top-header: "§7====== §aTop Check-in XP §7======"
+top-header: "§7====== §aTop Check-in XP §7====== §7(Page %page%/%pages%)"
+top-footer: "§7Use §f/checkin top %prev% §7for previous | §f/checkin top %next% §7for next"
+top-invalid-page: "§cInvalid page number! Please enter a number greater than 0!"
 look-header: "§7====== §a%player%'s Check-in Info §7======"
 broadcast-lucky: "§eCongratulations! %player% §fgot §a%num% §fXP from check-in!"
 

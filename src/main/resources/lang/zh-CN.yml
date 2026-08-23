@@ -24,7 +24,9 @@ info-total-xp: "§f累计经验: §a%num% XP"
 no-record: "§7暂无记录"
 recent-record: "§7最近记录:"
 
-top-header: "§7====== §a签到总经验排行榜 §7======"
+top-header: "§7====== §a签到总经验排行榜 §7====== §7(第 %page%/%pages% 页)"
+top-footer: "§7使用 §f/checkin top %prev% §7查看上一页 | §f/checkin top %next% §7查看下一页"
+top-invalid-page: "§c页码无效，请输入大于 0 的数字！"
 look-header: "§7====== §a%player% 的签到信息 §7======"
 broadcast-lucky: "§e恭喜 %player% §f签到获得 §a%num% §f经验！欧气爆棚！"
 
