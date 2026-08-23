@@ -257,7 +257,7 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
                 return true;
             }
             case "top": {
-                showTop(sender);
+                showTop(sender, args);
                 return true;
             }
             case "look": {
@@ -304,16 +304,16 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
             } catch (Exception ignored) {}
         }
 
-        int finalXP = (int) (base * (1 + (streak - 1) * STREAK_MULTI));
+        long finalXP = (long) (base * (1 + (streak - 1) * STREAK_MULTI));
 
         playerData.set(uuid + ".lastCheckInDate", todayStr);
         playerData.set(uuid + ".streak", streak);
         playerData.set(uuid + ".totalTimes", playerData.getInt(uuid + ".totalTimes", 0) + 1);
-        playerData.set(uuid + ".totalXP", playerData.getInt(uuid + ".totalXP", 0) + finalXP);
+        playerData.set(uuid + ".totalXP", playerData.getLong(uuid + ".totalXP", 0) + finalXP);
         playerData.set(uuid + ".records." + todayStr + ".xp", finalXP);
         playerData.set(uuid + ".records." + todayStr + ".streak", streak);
         savePlayerData();
-        p.giveExp(finalXP);
+        p.giveExp((int) Math.min(finalXP, Integer.MAX_VALUE));
 
         p.sendMessage(PREFIX + msg("checkin-success"));
         p.sendMessage(PREFIX + msg("base-xp").replace("%num%", String.valueOf(base)));
@@ -321,7 +321,7 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
         p.sendMessage(PREFIX + msg("final-xp").replace("%num%", String.valueOf(finalXP)));
         p.sendMessage(PREFIX + msg("total-info")
                 .replace("%times%", String.valueOf(playerData.getInt(uuid + ".totalTimes")))
-                .replace("%xp%", String.valueOf(playerData.getInt(uuid + ".totalXP"))));
+                .replace("%xp%", String.valueOf(playerData.getLong(uuid + ".totalXP"))));
 
         if (finalXP >= BROADCAST_LIMIT) {
             Bukkit.broadcastMessage(PREFIX + msg("broadcast-lucky")
@@ -334,7 +334,7 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
         p.sendMessage(PREFIX + msg("info-header"));
         p.sendMessage(PREFIX + msg("info-streak").replace("%num%", String.valueOf(playerData.getInt(uuid + ".streak", 0))));
         p.sendMessage(PREFIX + msg("info-total-times").replace("%num%", String.valueOf(playerData.getInt(uuid + ".totalTimes", 0))));
-        p.sendMessage(PREFIX + msg("info-total-xp").replace("%num%", String.valueOf(playerData.getInt(uuid + ".totalXP", 0))));
+        p.sendMessage(PREFIX + msg("info-total-xp").replace("%num%", String.valueOf(playerData.getLong(uuid + ".totalXP", 0))));
 
         ConfigurationSection sec = playerData.getConfigurationSection(uuid + ".records");
         if (sec == null || sec.getKeys(false).isEmpty()) {
@@ -352,23 +352,50 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
         }
     }
 
-    private void showTop(CommandSender sender) {
-        sender.sendMessage(PREFIX + msg("top-header"));
-        List<Map.Entry<String, Integer>> list = new ArrayList<>();
+    private static final int TOP_PAGE_SIZE = 10;
+
+    private void showTop(CommandSender sender, String[] args) {
+        int page = 1;
+        if (args.length >= 2) {
+            try {
+                page = Integer.parseInt(args[1]);
+            } catch (NumberFormatException ignored) {
+                sender.sendMessage(PREFIX + msg("top-invalid-page"));
+                return;
+            }
+        }
+        if (page < 1) page = 1;
+
+        List<Map.Entry<String, Long>> list = new ArrayList<>();
         for (String key : playerData.getKeys(false)) {
             try {
                 UUID.fromString(key);
-                int total = playerData.getInt(key + ".totalXP", 0);
+                long total = playerData.getLong(key + ".totalXP", 0);
                 if (total > 0) list.add(new AbstractMap.SimpleEntry<>(key, total));
             } catch (Exception ignored) {}
         }
-        list.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
-        int rank = 1;
-        for (Map.Entry<String, Integer> entry : list) {
-            if (rank > 10) break;
+        list.sort((a, b) -> Long.compare(b.getValue(), a.getValue()));
+
+        int totalPages = Math.max(1, (int) Math.ceil((double) list.size() / TOP_PAGE_SIZE));
+        if (page > totalPages) page = totalPages;
+
+        sender.sendMessage(PREFIX + msg("top-header").replace("%page%", String.valueOf(page)).replace("%pages%", String.valueOf(totalPages)));
+        int start = (page - 1) * TOP_PAGE_SIZE;
+        int end = Math.min(start + TOP_PAGE_SIZE, list.size());
+        int rank = start + 1;
+        for (int i = start; i < end; i++) {
+            Map.Entry<String, Long> entry = list.get(i);
             String name = playerData.getString(entry.getKey() + ".name", "未知玩家");
             sender.sendMessage(PREFIX + "§7#" + rank + " §f" + name + " §7| §a" + entry.getValue() + " XP");
             rank++;
+        }
+
+        if (totalPages > 1) {
+            sender.sendMessage(PREFIX + msg("top-footer")
+                    .replace("%page%", String.valueOf(page))
+                    .replace("%pages%", String.valueOf(totalPages))
+                    .replace("%next%", String.valueOf(page < totalPages ? page + 1 : page))
+                    .replace("%prev%", String.valueOf(page > 1 ? page - 1 : page)));
         }
     }
 
@@ -401,7 +428,7 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
         sender.sendMessage(PREFIX + msg("look-header").replace("%player%", name));
         sender.sendMessage(PREFIX + msg("info-streak").replace("%num%", String.valueOf(playerData.getInt(uuid + ".streak", 0))));
         sender.sendMessage(PREFIX + msg("info-total-times").replace("%num%", String.valueOf(playerData.getInt(uuid + ".totalTimes", 0))));
-        sender.sendMessage(PREFIX + msg("info-total-xp").replace("%num%", String.valueOf(playerData.getInt(uuid + ".totalXP", 0))));
+        sender.sendMessage(PREFIX + msg("info-total-xp").replace("%num%", String.valueOf(playerData.getLong(uuid + ".totalXP", 0))));
     }
 
     private void deleteRecord(CommandSender sender, String t, String date) {
@@ -423,10 +450,10 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
             return;
         }
 
-        int removed = playerData.getInt(path + ".xp");
+        long removed = playerData.getLong(path + ".xp");
         playerData.set(path, null);
         playerData.set(uuid + ".totalTimes", Math.max(0, playerData.getInt(uuid + ".totalTimes", 0) - 1));
-        playerData.set(uuid + ".totalXP", Math.max(0, playerData.getInt(uuid + ".totalXP", 0) - removed));
+        playerData.set(uuid + ".totalXP", Math.max(0L, playerData.getLong(uuid + ".totalXP", 0) - removed));
 
         LocalDate last = null;
         ConfigurationSection sec = playerData.getConfigurationSection(uuid + ".records");
