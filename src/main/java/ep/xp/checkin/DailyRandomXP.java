@@ -56,7 +56,7 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
         Metrics metrics = new Metrics(this, pluginId);
 
         getLogger().info("=====================================");
-        getLogger().info(" EP-XPcheckin 1.3 已成功加载！");
+        getLogger().info(" EP-XPcheckin 1.4 已成功加载！");
         getLogger().info(" 作者: system_mini | EndlessPixel");
         getLogger().info("=====================================");
     }
