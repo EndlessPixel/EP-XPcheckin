@@ -39,6 +39,9 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
     private final Random random = new Random();
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
+    // 三段式概率 (低 / 中 / 高)，归一化后使用，可在 config.yml 的 xp-segments 中配置
+    private double[] SEG_PROB = { 0.6, 0.3, 0.1 };
+
     @Override
     public void onEnable() {
         saveDefaultConfig();
@@ -85,6 +88,17 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
         }
         if (XP_RANGES.isEmpty()) {
             XP_RANGES = getDefaultXpRanges();
+        }
+
+        // 三段式概率 (低 / 中 / 高)
+        double low = getConfig().getDouble("xp-segments.low", 60);
+        double mid = getConfig().getDouble("xp-segments.mid", 30);
+        double high = getConfig().getDouble("xp-segments.high", 10);
+        double sum = low + mid + high;
+        if (sum <= 0) {
+            SEG_PROB = new double[]{ 0.6, 0.3, 0.1 };
+        } else {
+            SEG_PROB = new double[]{ low / sum, mid / sum, high / sum };
         }
     }
     
@@ -150,9 +164,11 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
     }
 
     // ====================== 随机经验 ======================
-    // 对数均匀分布：在配置整体区间的 log 空间内均匀随机。
-    // 小值密集、大值稀疏且稀有（保留"大奖稀有合理"特性），
-    // 同时彻底消除离散档位跳变，分布平滑连续、统计均匀。
+    // 三段式概率抽取：
+    //   1) 基于 xp-segments 配置的三段概率，抽一次决定落入 低/中/高 哪一段；
+    //   2) 各段的边界由 xp-ranges 整体区间按对数三等分得到（小值段密集、大值段稀有）；
+    //   3) 在确定段内再做连续均匀随机，得到最终经验值。
+    // 这样分布由"三段概率"主导，直观可控，且段内平滑无跳变。
     private long getFairRandomXP() {
         if (XP_RANGES == null || XP_RANGES.isEmpty()) return 10;
 
@@ -166,13 +182,46 @@ public final class DailyRandomXP extends JavaPlugin implements Listener, TabComp
         }
         if (gMin <= 0 || gMin > gMax) return 10;
 
+        // 三段边界：在 log 空间三等分，使低段数值密集、高段稀有
         double logMin = Math.log10(gMin);
         double logMax = Math.log10(gMax);
-        double value = Math.pow(10, logMin + random.nextDouble() * (logMax - logMin));
-        long result = (long) Math.floor(value);
-        if (result < gMin) result = gMin;
-        if (result > gMax) result = gMax;
-        return result;
+        long lowMax = (long) Math.floor(Math.pow(10, logMin + (logMax - logMin) / 3.0));
+        long midMax = (long) Math.floor(Math.pow(10, logMin + 2.0 * (logMax - logMin) / 3.0));
+        if (lowMax < gMin) lowMax = gMin;
+        if (lowMax > gMax) lowMax = gMax;
+        if (midMax < lowMax + 1) midMax = lowMax + 1;
+        if (midMax > gMax) midMax = gMax;
+
+        long[][] segments = {
+                { gMin, lowMax },           // 低段
+                { lowMax + 1, midMax },      // 中段
+                { midMax + 1, gMax }         // 高段
+        };
+
+        // 步骤1：按三段概率抽取命中的段（累积概率公式）
+        double roll = random.nextDouble();
+        double acc = 0.0;
+        int chosen = segments.length - 1;
+        for (int i = 0; i < segments.length; i++) {
+            acc += SEG_PROB[i];
+            if (roll < acc) {
+                chosen = i;
+                break;
+            }
+        }
+
+        // 步骤2：段内连续均匀随机
+        long[] seg = segments[chosen];
+        long span = seg[1] - seg[0] + 1;
+        long value;
+        if (span <= 1) {
+            value = seg[0];
+        } else if (span <= Integer.MAX_VALUE) {
+            value = seg[0] + random.nextInt((int) span);
+        } else {
+            value = seg[0] + Math.floorMod(random.nextLong(), span);
+        }
+        return value;
     }
 
     // ====================== 进服提醒 ======================
