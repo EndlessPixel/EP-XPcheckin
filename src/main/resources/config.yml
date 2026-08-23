@@ -39,3 +39,14 @@ xp-ranges:
   7: [10000000, 99999999]
   8: [100000000, 999999999]
   9: [1000000000, 2147483647]
+
+# 三段式抽取概率 (低 / 中 / 高)
+# 先按此概率抽中一段，再在该段范围内均匀取值。
+# 数值仅为相对权重，会自动归一化；调大"低"可让小经验更常见。
+# Three-segment draw probabilities (low / mid / high)
+# A segment is picked by these weights first, then a value is drawn uniformly inside it.
+# Values are relative weights and will be normalized automatically.
+xp-segments:
+  low: 60
+  mid: 30
+  high: 10
